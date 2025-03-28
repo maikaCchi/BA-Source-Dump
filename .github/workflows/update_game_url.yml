@@ -9,6 +9,7 @@ on:
 
 jobs:
   update-game-url:
+    environment: "GitHub Action"
     runs-on: ubuntu-latest
 
     steps:
@@ -74,9 +75,8 @@ jobs:
         if: steps.check_diff.outputs.changed == 'true'
         run: |
           # Send the content of game_url.txt to Discord webhook
-          webhook_url="${{ secrets.DISCORD_WEBHOOK_URL }}"
           file_content=$(cat game_url.txt)
-          curl -H "Content-Type: application/json" -X POST -d "{\"content\": \"${file_content}\"}" $webhook_url
+          curl -H "Content-Type: application/json" -X POST -d "{\"content\": \"${file_content}\"}" ${{ secrets.DISCORD_WEBHOOK_URL }}
 
           # Add, commit and push game_url.txt with the commit message from the extracted URL
           git add game_url.txt

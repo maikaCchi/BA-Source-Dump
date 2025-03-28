@@ -26,7 +26,7 @@ class FileDownloader:
                     if chunk:
                         file.write(chunk)
                         downloaded += len(chunk)
-                        self.print_progress(downloaded, total_size)
+                        # self.print_progress(downloaded, total_size)
             print(f"\nDownloaded {self.local_filepath}")
         except Exception as e:
             print(f"Error during download: {e}")

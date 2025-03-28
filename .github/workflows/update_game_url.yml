@@ -1,0 +1,66 @@
+name: Update Game URL
+
+# Run every Thursday at 07:00 and 10:00 UTC
+on:
+  schedule:
+    - cron: '0 7 * * 4'
+    - cron: '0 10 * * 4'
+    - cron: '0 13 * * 4'
+  workflow_dispatch:
+
+jobs:
+  update-game-url:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Run getApkData.py
+        run: python getApkData.py
+
+      - name: Run getJPVersion.py
+        run: python getJPVersion.py
+
+      - name: Extract commit message from game_url.txt
+        id: extract
+        run: |
+          # Read the first line of game_url.txt and extract the part between the last "/" and ".json"
+          url=$(head -n 1 game_url.txt)
+          echo "URL: $url"
+          commit_msg=$(echo "$url" | sed -n 's#.*/\([^/]*\)\.json#\1#p')
+          echo "Commit message: $commit_msg"
+          echo "::set-output name=commit_msg::$commit_msg"
+
+      - name: Check if game_url.txt changed
+        id: check_diff
+        run: |
+          # Configure git so that commit actions work
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          # Check if game_url.txt has any differences compared to HEAD
+          if git diff --quiet game_url.txt; then
+            echo "No changes in game_url.txt, exiting."
+            echo "::set-output name=changed::false"
+          else
+            echo "Changes detected in game_url.txt."
+            echo "::set-output name=changed::true"
+          fi
+
+      - name: Send update to Discord and push changes
+        if: steps.check_diff.outputs.changed == 'true'
+        run: |
+          # Send the content of game_url.txt to Discord webhook
+          webhook_url="${{ secrets.DISCORD_WEBHOOK_URL }}"
+          file_content=$(cat game_url.txt)
+          curl -H "Content-Type: application/json" -X POST -d "{\"content\": \"${file_content}\"}" $webhook_url
+
+          # Add, commit and push game_url.txt with the commit message from the extracted URL
+          git add game_url.txt
+          git commit -m "${{ steps.extract.outputs.commit_msg }}"
+          git push origin HEAD:main

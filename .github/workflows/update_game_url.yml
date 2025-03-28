@@ -1,11 +1,10 @@
 name: Update Game URL
 
-# Run every Thursday at 07:00 and 10:00 UTC
+# Run every Thursday at 05:00 and 07:00 UTC
 on:
   schedule:
+    - cron: '0 5 * * 4'
     - cron: '0 7 * * 4'
-    - cron: '0 10 * * 4'
-    - cron: '0 13 * * 4'
   workflow_dispatch:
 
 jobs:
@@ -46,7 +45,7 @@ jobs:
           echo "URL: $url"
           commit_msg=$(echo "$url" | sed -n 's#.*/\([^/]*\)\.json#\1#p')
           echo "Commit message: $commit_msg"
-          echo "::set-output name=commit_msg::$commit_msg"
+          echo "commit_msg=$commit_msg" >> $GITHUB_OUTPUT
 
       - name: Check if game_url.txt changed
         id: check_diff
@@ -54,13 +53,21 @@ jobs:
           # Configure git so that commit actions work
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
-          # Check if game_url.txt has any differences compared to HEAD
-          if git diff --quiet game_url.txt; then
-            echo "No changes in game_url.txt, exiting."
-            echo "::set-output name=changed::false"
+
+          # Check if game_url.txt exists on the main branch
+          if git ls-tree -r origin/main --name-only | grep -q "^game_url.txt$"; then
+            echo "game_url.txt exists on main branch."
+            # Compare working copy with main branch version
+            if git diff origin/main -- game_url.txt --quiet; then
+              echo "No changes in game_url.txt, exiting."
+              echo "changed=false" >> $GITHUB_OUTPUT
+            else
+              echo "Changes detected in game_url.txt."
+              echo "changed=true" >> $GITHUB_OUTPUT
+            fi
           else
-            echo "Changes detected in game_url.txt."
-            echo "::set-output name=changed::true"
+            echo "game_url.txt does not exist on main branch, treating as change."
+            echo "changed=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Send update to Discord and push changes

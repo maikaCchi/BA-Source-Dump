@@ -21,6 +21,14 @@ jobs:
         with:
           python-version: '3.x'
 
+      - name: Install Dependencies
+        run: |
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          else
+            echo "No requirements.txt found, skipping dependency installation."
+          fi
+
       - name: Run getApkData.py
         run: python getApkData.py
 

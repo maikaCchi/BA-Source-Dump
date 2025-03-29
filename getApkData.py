@@ -12,7 +12,7 @@ if __name__ == "__main__":
     downloader = FileDownloader(url, download_dir, "BlueArchive.xapk")
     downloader.download()
 
-    # # Extract XAPK file
+    # Extract XAPK file
     extractor = FileExtractor(downloader.local_filepath, extract_dir)
     extractor.extract_xapk()
 
@@ -23,6 +23,6 @@ if __name__ == "__main__":
     dumperDownload = FileDownloader(dumperUrl, download_dir, "il2cppDumper.zip")
     dumperDownload.download()
 
-    # # Extract il2cppdumper
+    # Extract il2cppdumper
     dumperExtract = FileExtractor(dumperDownload.local_filepath, extract_dir)
     dumperExtract.extract_il2cpp()

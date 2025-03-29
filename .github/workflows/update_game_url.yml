@@ -107,6 +107,7 @@ jobs:
             --arg commit "$commit_msg" \
             --arg commit_url "$commit_url" \
             --arg config "```json\n${config_content}\n```" \
+            --arg timestamp "$timestamp" \
             '{
               embeds: [
                 {

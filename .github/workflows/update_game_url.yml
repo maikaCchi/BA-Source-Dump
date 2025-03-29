@@ -90,6 +90,7 @@ jobs:
         run: |
           # Capture the current commit hash
           commit_hash=$(git rev-parse HEAD)
+          commit_url="https://github.com/${GITHUB_REPOSITORY}/commit/${commit_hash}"
 
           # Use commit hash for raw file links to point to the current commit's data
           dump_data_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/data/dump.cs"
@@ -106,12 +107,15 @@ jobs:
 
           # Build embed description with actual newline characters using a heredoc
           embed_description=$(cat <<EOF
-          **ServerInfoDataUrl:** ${game_url}
-          **AddressablesCatalogUrlVersion:** ${catalog_version}
-          **AddressablesCatalogUrlRoot:** ${catalog}
-          **DumpData:** [dump.cs](${dump_data_link})
-          **FBSData:** [BlueArchive.fbs](${fbs_data_link})
-          **FullConfigData:** [config.json](${config_link})
+          Game Info:
+          Server Info Data Url: ${game_url}
+          Catalog Version: ${catalog_version}
+          Catalog Url: ${catalog}
+          
+          Game Data:
+          Dump Data: [dump.cs](${dump_data_link})
+          FBS Data: [BlueArchive.fbs](${fbs_data_link})
+          Config Data: [config.json](${config_link})
           EOF
           )
 
@@ -122,12 +126,14 @@ jobs:
           payload=$(jq -n \
             --arg title "Config Update" \
             --arg description "$embed_description" \
+            --arg url "$commit_url" \
             --arg timestamp "$timestamp" \
             '{
               embeds: [
                 {
                   title: $title,
                   description: $description,
+                  url: $url,
                   color: 255,
                   timestamp: $timestamp
                 }

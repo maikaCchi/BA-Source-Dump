@@ -1,8 +1,8 @@
 name: Update Game URL
 
-# Run every Thursday at 05:00 and 07:00 UTC
 on:
   schedule:
+    - cron: '0 3 * * 4'
     - cron: '0 5 * * 4'
     - cron: '0 7 * * 4'
   workflow_dispatch:
@@ -41,28 +41,13 @@ jobs:
       - name: Run getJPVersion.py
         run: python getJPVersion.py
 
-      - name: Extract commit message from config.json
-        id: extract
-        run: |
-          # Use jq to extract the ServerInfoDataUrl from config.json
-          url=$(jq -r '.ServerInfoDataUrl' config.json)
-          echo "URL: $url"
-          # Extract the commit message from the URL (string between the last "/" and ".json")
-          commit_msg=$(echo "$url" | sed -n 's#.*/\([^/]*\)\.json#\1#p')
-          echo "Commit message: $commit_msg"
-          echo "commit_msg=$commit_msg" >> $GITHUB_OUTPUT
-
       - name: Check if config.json changed
         id: check_diff
         run: |
-          # Configure git so that commit actions work
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
-
-          # Check if config.json exists on the main branch
           if git ls-tree -r origin/main --name-only | grep -q "^config.json$"; then
             echo "config.json exists on main branch."
-            # Compare the current config.json with the one on origin/main
             if git diff origin/main -- config.json --quiet; then
               echo "No changes in config.json, exiting."
               echo "changed=false" >> $GITHUB_OUTPUT
@@ -75,56 +60,58 @@ jobs:
             echo "changed=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Send update to Discord and push changes
+      - name: Commit and Push Config Update
         if: steps.check_diff.outputs.changed == 'true'
         run: |
-          # Extract game_url from ServerInfoDataUrl and latest catalog URL from OverrideConnectionGroups in config.json
-          game_url=$(jq -r '.ServerInfoDataUrl' config.json)
-          catalog=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' config.json)
+          # Get raw URLs from config.json
+          raw_game_url=$(jq -r '.ServerInfoDataUrl' config.json)
+          raw_catalog=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' config.json)
           
-          # Construct the commit message as {game_url}_{catalog} and remove protocol for readability
+          # Extract the desired portions:
+          # For the game URL, capture the part between the last "/" and ".json"
+          game_url=$(echo "$raw_game_url" | sed -n 's#.*/\([^/]*\)\.json#\1#p')
+          # For the catalog URL, capture the part after the last "/"
+          catalog=$(echo "$raw_catalog" | sed -n 's#.*/\([^/]*\)$#\1#p')
+          
+          # Construct commit message in the format: {game_url}_{catalog}
           commit_msg="${game_url}_${catalog}"
-          commit_msg=$(echo "$commit_msg" | sed -E 's#https?://##g')
-
-          # Add and commit config.json with the commit message
+          
+          # Commit the updated config.json
           git add config.json
           git commit -m "$commit_msg"
           
-          # Capture the commit hash and construct the commit URL
-          commit_hash=$(git rev-parse HEAD)
-          commit_url="https://github.com/${GITHUB_REPOSITORY}/commit/${commit_hash}"
-          
           # Push the commit to main
           git push origin HEAD:main
-          
-          # Pretty print config.json content using jq
+
+      - name: Send update to Discord
+        if: steps.check_diff.outputs.changed == 'true'
+        run: |
+          # Get pretty-printed config.json content
           config_content=$(jq '.' config.json)
           
-          # Get the current UTC timestamp in ISO 8601 format
+          # Get current UTC timestamp in ISO 8601 format
           timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           
-          # Create the embed description with commit details and config data
-          embed_description="**Commit URL:** [${commit_url}](${commit_url})\n\n**Config Data:**\n\`\`\`json\n${config_content}\n\`\`\`"
+          # Build embed description containing only the config data
+          embed_description="**Config Data:**\n\`\`\`json\n${config_content}\n\`\`\`"
           
-          # Create the JSON payload for the Discord webhook using jq
+          # Create JSON payload for Discord embed (color set to blue: 255)
           payload=$(jq -n \
             --arg title "Config Update" \
             --arg description "$embed_description" \
-            --arg url "$commit_url" \
             --arg timestamp "$timestamp" \
             '{
               embeds: [
                 {
                   title: $title,
                   description: $description,
-                  url: $url,
                   color: 255,
                   timestamp: $timestamp
                 }
               ]
             }')
           
-          # Send the embed payload to Discord
+          # Send the payload to Discord
           curl -H "Content-Type: application/json" \
                -X POST \
                -d "$payload" \

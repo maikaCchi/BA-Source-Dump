@@ -41,47 +41,103 @@ jobs:
       - name: Run getJPVersion.py
         run: python getJPVersion.py
 
-      - name: Extract commit message from game_url.txt
+      - name: Extract commit message from config.json
         id: extract
         run: |
-          # Read the first line of game_url.txt and extract the part between the last "/" and ".json"
-          url=$(head -n 1 game_url.txt)
+          # Use jq to extract the ServerInfoDataUrl from config.json
+          url=$(jq -r '.ServerInfoDataUrl' config.json)
           echo "URL: $url"
+          # Extract the commit message from the URL (string between the last "/" and ".json")
           commit_msg=$(echo "$url" | sed -n 's#.*/\([^/]*\)\.json#\1#p')
           echo "Commit message: $commit_msg"
           echo "commit_msg=$commit_msg" >> $GITHUB_OUTPUT
 
-      - name: Check if game_url.txt changed
+      - name: Check if config.json changed
         id: check_diff
         run: |
           # Configure git so that commit actions work
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
 
-          # Check if game_url.txt exists on the main branch
-          if git ls-tree -r origin/main --name-only | grep -q "^game_url.txt$"; then
-            echo "game_url.txt exists on main branch."
-            # Compare working copy with main branch version
-            if git diff origin/main -- game_url.txt --quiet; then
-              echo "No changes in game_url.txt, exiting."
+          # Check if config.json exists on the main branch
+          if git ls-tree -r origin/main --name-only | grep -q "^config.json$"; then
+            echo "config.json exists on main branch."
+            # Compare the current config.json with the one on origin/main
+            if git diff origin/main -- config.json --quiet; then
+              echo "No changes in config.json, exiting."
               echo "changed=false" >> $GITHUB_OUTPUT
             else
-              echo "Changes detected in game_url.txt."
+              echo "Changes detected in config.json."
               echo "changed=true" >> $GITHUB_OUTPUT
             fi
           else
-            echo "game_url.txt does not exist on main branch, treating as change."
+            echo "config.json does not exist on main branch, treating as change."
             echo "changed=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Send update to Discord and push changes
-        if: steps.check_diff.outputs.changed == 'true'
-        run: |
-          # Send the content of game_url.txt to Discord webhook
-          file_content=$(cat game_url.txt)
-          curl -H "Content-Type: application/json" -X POST -d "{\"content\": \"${file_content}\"}" ${{ secrets.DISCORD_WEBHOOK_URL }}
+          - name: Send update to Discord and push changes
+          if: steps.check_diff.outputs.changed == 'true'
+          run: |
+            # Use the commit message from the extracted step
+            commit_msg="${{ steps.extract.outputs.commit_msg }}"
+            
+            # Add and commit config.json with the commit message
+            git add config.json
+            git commit -m "$commit_msg"
+            
+            # Capture the current commit hash
+            commit_hash=$(git rev-parse HEAD)
+            
+            # Construct the commit URL using the GITHUB_REPOSITORY env variable (format: owner/repo)
+            commit_url="https://github.com/${GITHUB_REPOSITORY}/commit/${commit_hash}"
+            
+            # Push the commit to the main branch
+            git push origin HEAD:main
+            
+            # Read the config.json content
+            config_content=$(cat config.json)
 
-          # Add, commit and push game_url.txt with the commit message from the extracted URL
-          git add game_url.txt
-          git commit -m "${{ steps.extract.outputs.commit_msg }}"
-          git push origin HEAD:main
+            # Get the current timestamp
+            timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            
+            # Create the JSON payload for the Discord embed using jq
+            payload=$(jq -n \
+              --arg title "Config Update" \
+              --arg description "New config data available." \
+              --arg commit "$commit_msg" \
+              --arg commit_url "$commit_url" \
+              --arg config "```json\n${config_content}\n```" \
+              '{
+                embeds: [
+                  {
+                    title: $title,
+                    description: $description,
+                    url: $commit_url,
+                    color: 7506394,
+                    timestamp: $timestamp,
+                    fields: [
+                      {
+                        name: "Commit Message",
+                        value: $commit,
+                        inline: true
+                      },
+                      {
+                        name: "Commit URL",
+                        value: $commit_url,
+                        inline: true
+                      },
+                      {
+                        name: "Config Data",
+                        value: $config,
+                        inline: false
+                      }
+                    ]
+                  }
+                ]
+              }')
+            
+            # Send the embed payload to Discord
+            curl -H "Content-Type: application/json" \
+                 -X POST \
+                 -d "$payload" \
+                 "${{ secrets.DISCORD_WEBHOOK_URL }}"

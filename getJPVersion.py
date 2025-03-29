@@ -1,4 +1,6 @@
 import os, platform
+import json
+import requests
 
 from lib.CatalogFetcher import decrypt_game_config, find_game_config
 from lib.Il2cppDumper import Il2CppDumperCLI
@@ -23,10 +25,21 @@ if __name__ == "__main__":
     FBSGenerator(dump_cs_path, fbs_path).generate_fbs()
 
     # Get the game url
-    data = decrypt_game_config(find_game_config(os.path.join(extract_dir, "UnityDataAssetPack", "assets", "bin", "Data")))
-    output_file_path = os.path.join(os.getcwd(), 'game_url.txt')
-    
-    with open(output_file_path, 'w', encoding='utf-8') as file:
-        file.write(data)
-    
-    print(f"Game url has been written to {output_file_path}")
+    config_url = decrypt_game_config(find_game_config(os.path.join(extract_dir, "UnityDataAssetPack", "assets", "bin", "Data")))
+    output_file_path = os.path.join(os.getcwd(), 'config.json')
+
+    # Request the data from config and save to the disk
+    try:
+        response = requests.get(config_url)
+        response.raise_for_status()
+        config_data = response.json()
+
+        config_data["ServerInfoDataUrl"] = config_url
+
+        with open(output_file_path, 'w', encoding='utf-8') as file:
+            json.dump(config_data, file, indent=4, ensure_ascii=False)
+
+        print(f"Config data has been written to {output_file_path}")
+
+    except requests.RequestException as e:
+        print(f"Error fetching config data: {e}")

@@ -107,12 +107,12 @@ jobs:
 
           # Build embed description with actual newline characters using a heredoc
           embed_description=$(cat <<EOF
-          Game Info:
-          Server Info Data Url: ${game_url}
-          Catalog Version: ${catalog_version}
-          Catalog Url: ${catalog}
+          **Game Info**
+          Server Info Data Url: `${game_url}`
+          Catalog Version: `${catalog_version}`
+          Catalog Url: `${catalog}`
           
-          Game Data:
+          **Game Data**
           Dump Data: [dump.cs](${dump_data_link})
           FBS Data: [BlueArchive.fbs](${fbs_data_link})
           Config Data: [config.json](${config_link})

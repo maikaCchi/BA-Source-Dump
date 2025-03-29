@@ -145,13 +145,3 @@ public enum (.{1,128}?) // TypeDefIndex: \d+?
             self._write_structs_to_fbs(structs, enums, f)
 
         print(f"FBS file generated at: {self.fbs_filepath}")
-
-
-if __name__ == '__main__':
-    # Adjust these paths as needed.
-    root = Path(__file__).parent
-    dump_cs_path = root / 'dump.cs'
-    fbs_path = root / 'BlueArchiveJP.fbs'
-
-    generator = FBSGenerator(dump_cs_path, fbs_path)
-    generator.generate_fbs()

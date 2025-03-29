@@ -26,3 +26,5 @@ if __name__ == "__main__":
     # Extract il2cppdumper
     dumperExtract = FileExtractor(dumperDownload.local_filepath, extract_dir)
     dumperExtract.extract_il2cpp()
+
+    print("Successfully downloaded and extracted files")

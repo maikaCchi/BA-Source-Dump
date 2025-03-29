@@ -46,13 +46,13 @@ jobs:
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
-          if git ls-tree -r origin/main --name-only | grep -q "^config.json$"; then
+          if git ls-tree -r origin/main --name-only | grep -q "^data/config.json$"; then
             echo "config.json exists on main branch."
-            if git diff origin/main -- config.json --quiet; then
+            if git diff origin/main -- data/config.json --quiet; then
               echo "No changes in config.json, exiting."
               echo "changed=false" >> $GITHUB_OUTPUT
             else
-              echo "Changes detected in config.json."
+              echo "Changes detected in data/config.json."
               echo "changed=true" >> $GITHUB_OUTPUT
             fi
           else
@@ -63,9 +63,9 @@ jobs:
       - name: Commit and Push Config Update
         if: steps.check_diff.outputs.changed == 'true'
         run: |
-          # Get raw URLs from config.json
-          raw_game_url=$(jq -r '.ServerInfoDataUrl' config.json)
-          raw_catalog=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' config.json)
+          # Get raw URLs from data/config.json
+          raw_game_url=$(jq -r '.ServerInfoDataUrl' data/config.json)
+          raw_catalog=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' data/config.json)
           
           # Extract the desired portions:
           # For the game URL, capture the part between the last "/" and ".json"
@@ -76,8 +76,10 @@ jobs:
           # Construct commit message in the format: {game_url}_{catalog}
           commit_msg="${game_url}_${catalog}"
           
-          # Commit the updated config.json
-          git add config.json
+          # Commit the updated data/config.json
+          git add data/config.json
+          git add data/dump.cs
+          git add data/BlueArchive.fbs
           git commit -m "$commit_msg"
           
           # Push the commit to main
@@ -86,16 +88,17 @@ jobs:
       - name: Send update to Discord
         if: steps.check_diff.outputs.changed == 'true'
         run: |
-          # Get pretty-printed config.json content
-          config_content=$(jq '.' config.json)
-          
+          # Get pretty-printed data/config.json content in raw mode to preserve newlines
+          config_content=$(jq -r '.' data/config.json)
+                  
           # Get current UTC timestamp in ISO 8601 format
           timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          
+                  
           # Build embed description containing only the config data
-          embed_description="**Config Data:**\n\`\`\`json\n${config_content}\n\`\`\`"
-          
-          # Create JSON payload for Discord embed (color set to blue: 255)
+          # Note the extra newline before ``` for better readability
+          embed_description="**Config Data:**\n\n\`\`\`json\n${config_content}\n\`\`\`"
+                  
+          # Create JSON payload for Discord embed
           payload=$(jq -n \
             --arg title "Config Update" \
             --arg description "$embed_description" \
@@ -110,9 +113,10 @@ jobs:
                 }
               ]
             }')
-          
+                    
           # Send the payload to Discord
           curl -H "Content-Type: application/json" \
                -X POST \
                -d "$payload" \
                "${{ secrets.DISCORD_WEBHOOK_URL }}"
+        

@@ -104,8 +104,16 @@ jobs:
           raw_catalog=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' data/config.json)
           catalog=$(echo "$raw_catalog" | sed -n 's#.*/\([^/]*\)$#\1#p')
 
-          # Build the embed description
-          embed_description="**ServerInfoDataUrl:** ${game_url}\n**AddressablesCatalogUrlVersion:** ${catalog_version}\n**AddressablesCatalogUrlRoot:** ${catalog}\n**DumpData:** [dump.cs](${dump_data_link})\n**FBSData:** [BlueArchive.fbs](${fbs_data_link})\n**FullConfigData:** [config.json](${config_link})"
+          # Build embed description with actual newline characters using a heredoc
+          embed_description=$(cat <<EOF
+          **ServerInfoDataUrl:** ${game_url}
+          **AddressablesCatalogUrlVersion:** ${catalog_version}
+          **AddressablesCatalogUrlRoot:** ${catalog}
+          **DumpData:** [dump.cs](${dump_data_link})
+          **FBSData:** [BlueArchive.fbs](${fbs_data_link})
+          **FullConfigData:** [config.json](${config_link})
+          EOF
+          )
 
           # Get current UTC timestamp in ISO 8601 format
           timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")

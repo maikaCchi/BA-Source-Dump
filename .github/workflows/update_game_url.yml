@@ -53,7 +53,7 @@ jobs:
           config_file="jp_data/config.json"
           changed_flag=false
 
-          if [ -f "$config_file" ]; then
+          if git ls-tree -r origin/main --name-only | grep -Fxq "$config_file"; then
             echo "$config_file exists locally. Checking for differences against origin/main..."
             if ! git diff --quiet origin/main -- "$config_file"; then
               echo "Changes detected in $config_file compared to origin/main (or file is new)."

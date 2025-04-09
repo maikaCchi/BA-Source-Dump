@@ -49,14 +49,25 @@ jobs:
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
+          
+          config_file="jp_data/config.json"
+          changed_flag=false
 
-          if ! git diff --quiet origin/main -- jp_data/config.json; then
-            echo "Changes detected in jp_data/config.json (or file is new/untracked)."
-            echo "changed=true" >> $GITHUB_OUTPUT
+          if [ -f "$config_file" ]; then
+            echo "$config_file exists locally. Checking for differences against origin/main..."
+            if ! git diff --quiet origin/main -- "$config_file"; then
+              echo "Changes detected in $config_file compared to origin/main (or file is new)."
+              changed_flag=true
+            else
+              echo "$config_file exists locally but is identical to origin/main. No git changes needed."
+              # changed_flag remains false
+            fi
           else
-            echo "No changes in jp_data/config.json."
-            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "$config_file does not exist locally. No changes to commit."
+            # changed_flag remains false
           fi
+
+          echo "changed=$changed_flag" >> $GITHUB_OUTPUT
 
       - name: Commit and Push Config Update
         if: steps.check_diff.outputs.changed == 'true'

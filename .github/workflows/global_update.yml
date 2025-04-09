@@ -77,13 +77,13 @@ jobs:
           raw_game_url=$(jq -r '.ServerInfoDataUrl' global_data/config.json)
           raw_catalog=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' global_data/config.json)
 
-          # Extract the part between the last "/" and ".json"
-          game_url=$(echo "$raw_game_url" | sed -n 's#.*/\([^/]*\)\.json#\1#p')
-          # Extract the part after the last "/"
-          catalog=$(echo "$raw_catalog" | sed -n 's#.*/\([^/]*\)$#\1#p')
+          game_version=$(jq -r '.latest_build_version' global_data/config.json)
+          resource_path=$(jq -r '.patch.resource_path' global_data/config.json)
+          catalog_id=$(echo "$resource_path" | sed -n 's#.*/com\.nexon\.bluearchive/\([^/]*\)/.*#\1#p')
+          catalog_version=$(jq -r '.patch_version' global_data/resources.json)
 
           # Construct commit message
-          commit_msg="${game_url}_${catalog}"
+          commit_msg="${game_version}_${catalog_version}_${catalog_id}"
           echo "Commit message: $commit_msg"
 
           # Add the files that should be committed

@@ -63,7 +63,7 @@ jobs:
               # changed_flag remains false
             fi
           else
-            echo "$config_file does not exist locally. No changes to commit."
+            echo "$config_file does not exist on origin/main. Add the file."
             changed_flag=true
           fi
 
@@ -115,7 +115,7 @@ jobs:
 
           embed_description=$(cat <<EOF
           **Game Info**
-          Server Info Data Url: [(${game_url})](${raw_game_url})
+          Server Info Data Url: [${game_url}](${raw_game_url})
           Catalog Version: ${catalog_version}
           Catalog Url: ${catalog}
 

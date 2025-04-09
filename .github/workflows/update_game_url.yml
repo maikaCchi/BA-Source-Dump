@@ -2,9 +2,9 @@ name: Update Game URL
 
 on:
   schedule:
-    - cron: '0 3 * * 4'
-    - cron: '0 5 * * 4'
-    - cron: '0 7 * * 4'
+    - cron: '0 3 * * 3'
+    - cron: '0 5 * * 3'
+    - cron: '0 7 * * 3'
   workflow_dispatch:
 
 permissions:

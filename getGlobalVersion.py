@@ -2,14 +2,14 @@ import os, platform
 import json
 import requests
 
-from lib.CatalogFetcher import decrypt_game_config, find_game_config
+from lib.GlobalCatalogFetcher import catalog_url
 from lib.Il2cppDumper import Il2CppDumperCLI
 from lib.FBSGenerator import FBSGenerator
 
 if __name__ == "__main__":
-    extract_dir = os.path.join(os.getcwd(), 'jp_extracted')
-    dumped_dir = os.path.join(os.getcwd(), 'jp_dumped')
-    data_dir = os.path.join(os.getcwd(), 'jp_data')
+    extract_dir = os.path.join(os.getcwd(), 'global_extracted')
+    dumped_dir = os.path.join(os.getcwd(), 'global_dumped')
+    data_dir = os.path.join(os.getcwd(), 'global_data')
     os.makedirs(data_dir, exist_ok=True)
     os_system = platform.system()
 
@@ -27,22 +27,24 @@ if __name__ == "__main__":
     FBSGenerator(dump_cs_path, fbs_path).generate_fbs()
 
     # Get the game url
-    config_url = decrypt_game_config(find_game_config(os.path.join(extract_dir, "UnityDataAssetPack", "assets", "bin", "Data")))
-    output_file_path = os.path.join(data_dir, "config.json")
+    config_data = catalog_url()
+    config_file_path = os.path.join(data_dir, 'config.json')
+    resources_file_path = os.path.join(data_dir, 'resources.json')
+    
 
     # Request the data from config and save to the disk
     try:
-        response = requests.get(config_url)
+        response = requests.get(config_data['patch']['resource_path'])
         response.raise_for_status()
-        config_data_res = response.json()
+        resources_data = response.json()
 
-        config_data = {"ServerInfoDataUrl": config_url}
-        config_data.update(config_data_res)
-
-        with open(output_file_path, 'w', encoding='utf-8') as file:
+        with open(config_file_path, 'w', encoding='utf-8') as file:
             json.dump(config_data, file, indent=4, ensure_ascii=False)
+        with open(resources_file_path, 'w', encoding='utf-8') as file:
+            json.dump(resources_data, file, indent=4, ensure_ascii=False)
 
-        print(f"Config data has been written to {output_file_path}")
+        print(f"Config data has been written to {config_file_path}")
+        print(f"Resources data has been written to {resources_file_path}")
     except requests.RequestException as e:
         print(f"Error fetching config data: {e}")
 

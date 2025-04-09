@@ -2,3 +2,4 @@ cloudscraper
 pycryptodome
 requests
 xxhash>=3.5.0
+requests-cache

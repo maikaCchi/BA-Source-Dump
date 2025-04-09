@@ -17,7 +17,7 @@ class FileDownloader:
             response = self.scraper.get(self.url, stream=True)
             response.raise_for_status()
 
-            total_size = int(response.headers.get('content-length', 0))
+            # total_size = int(response.headers.get('content-length', 0))
             downloaded = 0
             chunk_size = 8192
 
@@ -41,9 +41,18 @@ class FileDownloader:
             )
 
 class FileExtractor:
-    def __init__(self, file_path, extract_dir):
+    def __init__(self, file_path, extract_dir, version="jp"):
         self.file_path = file_path
         self.extract_dir = extract_dir
+        self.apk_files = {
+            'config.arm64_v8a.apk': os.path.join(self.extract_dir, 'config_arm64_v8a'),
+        }
+        if version == "global":
+            pkg_filename = "com.nexon.bluearchive.apk"
+        else:
+            self.apk_files['UnityDataAssetPack.apk'] = os.path.join(self.extract_dir, 'UnityDataAssetPack')
+            pkg_filename = "com.YostarJP.BlueArchive.apk"
+        self.apk_files[pkg_filename] = os.path.join(self.extract_dir, 'BlueArchive_apk')
         os.makedirs(self.extract_dir, exist_ok=True)
 
     def extract_xapk(self):
@@ -56,12 +65,8 @@ class FileExtractor:
             print(f"Error extracting {self.file_path}: {e}")
             return
         
-        apk_files = {
-            'config.arm64_v8a.apk': os.path.join(self.extract_dir, 'config_arm64_v8a'),
-            'com.YostarJP.BlueArchive.apk': os.path.join(self.extract_dir, 'BlueArchive_apk'),
-            'UnityDataAssetPack.apk': os.path.join(self.extract_dir, 'UnityDataAssetPack')
-        }
-        for apk_name, dest_dir in apk_files.items():
+        for apk_name, dest_dir in self.apk_files.items():
+            print(apk_name, dest_dir)
             self.extract_apk(apk_name, dest_dir)
     
     def extract_il2cpp(self):

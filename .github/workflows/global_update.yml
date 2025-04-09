@@ -1,8 +1,8 @@
-name: Update Game URL
+name: Global Update
 
 on:
   schedule:
-    # Run every Wednesday at 03:00, 05:00, and 07:00 UTC
+    # Run every Tuesday at 03:00, 05:00, and 07:00 UTC
     - cron: '0 3 * * 3'
     - cron: '0 5 * * 3'
     - cron: '0 7 * * 3'
@@ -50,7 +50,7 @@ jobs:
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
           
-          config_file="jp_data/config.json"
+          config_file="global_data/config.json"
           changed_flag=false
 
           if git ls-tree -r origin/main --name-only | grep -Fxq "$config_file"; then
@@ -74,8 +74,8 @@ jobs:
         run: |
           echo "Attempting to commit and push changes..."
           # Extract data for commit message using jq and sed
-          raw_game_url=$(jq -r '.ServerInfoDataUrl' jp_data/config.json)
-          raw_catalog=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' jp_data/config.json)
+          raw_game_url=$(jq -r '.ServerInfoDataUrl' global_data/config.json)
+          raw_catalog=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' global_data/config.json)
 
           # Extract the part between the last "/" and ".json"
           game_url=$(echo "$raw_game_url" | sed -n 's#.*/\([^/]*\)\.json#\1#p')
@@ -87,7 +87,7 @@ jobs:
           echo "Commit message: $commit_msg"
 
           # Add the files that should be committed
-          git add jp_data/config.json jp_data/dump.cs jp_data/BlueArchive.fbs
+          git add global_data/config.json global_data/dump.cs global_data/BlueArchive.fbs global_data/resources.json
 
           # Commit the changes
           git commit -m "$commit_msg"
@@ -102,27 +102,28 @@ jobs:
           commit_hash=$(git rev-parse HEAD)
           commit_url="https://github.com/${GITHUB_REPOSITORY}/commit/${commit_hash}"
 
-          dump_data_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/jp_data/dump.cs"
-          fbs_data_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/jp_data/BlueArchive.fbs"
-          config_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/jp_data/config.json"
+          dump_data_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/global_data/dump.cs"
+          fbs_data_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/global_data/BlueArchive.fbs"
+          config_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/global_data/config.json"
+          resources_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/global_data/resources.json"
 
-          raw_game_url=$(jq -r '.ServerInfoDataUrl' jp_data/config.json)
-          game_url=$(echo "$raw_game_url" | sed -n 's#.*/\([^/]*\)\.json#\1#p')
-
-          catalog_version=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].Name' jp_data/config.json)
-          raw_catalog=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' jp_data/config.json)
-          catalog=$(echo "$raw_catalog" | sed -n 's#.*/\([^/]*\)$#\1#p')
+          game_version=$(jq -r '.latest_build_version' global_data/config.json)
+          resource_path=$(jq -r '.patch.resource_path' global_data/config.json)
+          catalog_id=$(echo "$resource_path" | sed -n 's#.*/com\.nexon\.bluearchive/\([^/]*\)/.*#\1#p')
+          catalog_version=$(jq -r '.patch_version' global_data/resources.json)
 
           embed_description=$(cat <<EOF
           **Game Info**
-          Server Info Data Url: [${game_url}](${raw_game_url})
-          Catalog Version: ${catalog_version}
-          Catalog Url: ${catalog}
+          Game Version: ${game_version}
+          Resource Data: [${catalog_id}](${resource_path})
+          Resource Version: ${catalog_version}
+          Resource Id: ${catalog_id}
 
           **Game Data**
           Dump Data: [dump.cs](${dump_data_link})
           FBS Data: [BlueArchive.fbs](${fbs_data_link})
           Config Data: [config.json](${config_link})
+          Resources Data: [resources.json](${resources_link})
           EOF
           )
 
@@ -139,7 +140,7 @@ jobs:
                   "title": $title,
                   "description": $description,
                   "url": $url,
-                  "color": 255,
+                  "color": 5666161,
                   "timestamp": $timestamp
                 }
               ]

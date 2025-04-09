@@ -9,7 +9,7 @@ from lib.FBSGenerator import FBSGenerator
 if __name__ == "__main__":
     extract_dir = os.path.join(os.getcwd(), 'extracted')
     dumped_dir = os.path.join(os.getcwd(), 'dumped')
-    data_dir = os.path.join(os.getcwd(), 'data')
+    data_dir = os.path.join(os.getcwd(), 'jp_data')
     os_system = platform.system()
 
     # Dump il2cpp data from the apk file

@@ -50,11 +50,11 @@ jobs:
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
 
-          if ! git diff --quiet origin/main -- data/config.json; then
-            echo "Changes detected in data/config.json (or file is new/untracked)."
+          if ! git diff --quiet origin/main -- jp_data/config.json; then
+            echo "Changes detected in jp_data/config.json (or file is new/untracked)."
             echo "changed=true" >> $GITHUB_OUTPUT
           else
-            echo "No changes in data/config.json."
+            echo "No changes in jp_data/config.json."
             echo "changed=false" >> $GITHUB_OUTPUT
           fi
 
@@ -63,8 +63,8 @@ jobs:
         run: |
           echo "Attempting to commit and push changes..."
           # Extract data for commit message using jq and sed
-          raw_game_url=$(jq -r '.ServerInfoDataUrl' data/config.json)
-          raw_catalog=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' data/config.json)
+          raw_game_url=$(jq -r '.ServerInfoDataUrl' jp_data/config.json)
+          raw_catalog=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' jp_data/config.json)
 
           # Extract the part between the last "/" and ".json"
           game_url=$(echo "$raw_game_url" | sed -n 's#.*/\([^/]*\)\.json#\1#p')
@@ -76,7 +76,7 @@ jobs:
           echo "Commit message: $commit_msg"
 
           # Add the files that should be committed
-          git add data/config.json data/dump.cs data/BlueArchive.fbs
+          git add jp_data/config.json jp_data/dump.cs jp_data/BlueArchive.fbs
 
           # Commit the changes
           git commit -m "$commit_msg"
@@ -91,15 +91,15 @@ jobs:
           commit_hash=$(git rev-parse HEAD)
           commit_url="https://github.com/${GITHUB_REPOSITORY}/commit/${commit_hash}"
 
-          dump_data_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/data/dump.cs"
-          fbs_data_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/data/BlueArchive.fbs"
-          config_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/data/config.json"
+          dump_data_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/jp_data/dump.cs"
+          fbs_data_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/jp_data/BlueArchive.fbs"
+          config_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/jp_data/config.json"
 
-          raw_game_url=$(jq -r '.ServerInfoDataUrl' data/config.json)
+          raw_game_url=$(jq -r '.ServerInfoDataUrl' jp_data/config.json)
           game_url=$(echo "$raw_game_url" | sed -n 's#.*/\([^/]*\)\.json#\1#p')
 
-          catalog_version=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].Name' data/config.json)
-          raw_catalog=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' data/config.json)
+          catalog_version=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].Name' jp_data/config.json)
+          raw_catalog=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' jp_data/config.json)
           catalog=$(echo "$raw_catalog" | sed -n 's#.*/\([^/]*\)$#\1#p')
 
           embed_description=$(cat <<EOF

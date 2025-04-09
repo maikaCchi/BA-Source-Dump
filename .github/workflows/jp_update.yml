@@ -39,7 +39,7 @@ jobs:
         run: python getApkData.py
 
       - name: Set executable permissions for Il2CppDumper
-        run: chmod +x ./extracted/Il2CppDumper/Il2CppDumper
+        run: chmod +x ./jp_extracted/Il2CppDumper/Il2CppDumper
 
       - name: Run getJPVersion.py
         run: python getJPVersion.py

@@ -52,8 +52,6 @@ jobs:
       - name: Check if config.json changed
         id: check_diff
         run: |
-          git fetch origin main --depth=1
-
           if git ls-tree -r origin/main --name-only | grep -q "^data/config.json$"; then
             echo "config.json exists on main branch."
             if git diff origin/main -- data/config.json then

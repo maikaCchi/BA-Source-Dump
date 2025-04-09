@@ -13,6 +13,7 @@ permissions:
 
 jobs:
   update-game-url:
+    environment: "GitHub Action"
     runs-on: ubuntu-latest
 
     steps:

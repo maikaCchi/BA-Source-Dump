@@ -122,7 +122,7 @@ jobs:
           # Create JSON payload for Discord using jq
           # Using --arg ensures proper JSON string escaping
           payload=$(jq -n \
-            --arg title "Config Update: ${commit_msg}" \
+            --arg title "JP Config Update" \
             --arg description "$embed_description" \
             --arg url "$commit_url" \
             --arg timestamp "$timestamp" \

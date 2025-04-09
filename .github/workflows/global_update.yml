@@ -36,13 +36,13 @@ jobs:
           fi
 
       - name: Run getApkData.py
-        run: python getApkData.py
+        run: python getApkData.py --region global
 
       - name: Set executable permissions for Il2CppDumper
         run: chmod +x ./global_extracted/Il2CppDumper/Il2CppDumper
 
       - name: Run getJPVersion.py
-        run: python getJPVersion.py
+        run: python getGlobalVersion.py
 
       - name: Check if config.json changed
         id: check_diff

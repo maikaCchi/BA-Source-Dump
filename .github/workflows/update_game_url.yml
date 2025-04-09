@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  
 
 jobs:
   update-game-url:
@@ -18,6 +19,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -41,14 +44,19 @@ jobs:
       - name: Run getJPVersion.py
         run: python getJPVersion.py
 
-      - name: Check if config.json changed
-        id: check_diff
+      - name: Set up git identity
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
+
+      - name: Check if config.json changed
+        id: check_diff
+        run: |
+          git fetch origin main --depth=1
+
           if git ls-tree -r origin/main --name-only | grep -q "^data/config.json$"; then
             echo "config.json exists on main branch."
-            if git diff origin/main -- data/config.json --quiet; then
+            if git diff origin/main -- data/config.json then
               echo "No changes in config.json, exiting."
               echo "changed=false" >> $GITHUB_OUTPUT
             else

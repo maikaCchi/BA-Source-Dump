@@ -86,8 +86,6 @@ jobs:
 
       - name: Send update to Discord
         if: steps.check_diff.outputs.changed == 'true'
-        env:
-           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           commit_hash=$(git rev-parse HEAD)
           commit_url="https://github.com/${GITHUB_REPOSITORY}/commit/${commit_hash}"
@@ -116,11 +114,8 @@ jobs:
           EOF
           )
 
-          # Get current UTC timestamp
           timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-          # Create JSON payload for Discord using jq
-          # Using --arg ensures proper JSON string escaping
           payload=$(jq -n \
             --arg title "JP Config Update" \
             --arg description "$embed_description" \
@@ -138,9 +133,8 @@ jobs:
               ]
             }')
 
-          # Send the payload to Discord using curl
           curl -H "Content-Type: application/json" \
                -X POST \
                -d "$payload" \
-               "$DISCORD_WEBHOOK_URL"
+               ${{ secrets.DISCORD_WEBHOOK_URL }}
           echo "Discord notification sent."

@@ -43,15 +43,13 @@ jobs:
 
       - name: Run getJPVersion.py
         run: python getJPVersion.py
-
-      - name: Set up git identity
+        
+      - name: Check if config.json changed
+        id: check_diff
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
 
-      - name: Check if config.json changed
-        id: check_diff
-        run: |
           if git ls-tree -r origin/main --name-only | grep -q "^data/config.json$"; then
             echo "config.json exists on main branch."
             if git diff origin/main -- data/config.json then

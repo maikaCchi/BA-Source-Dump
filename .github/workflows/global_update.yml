@@ -130,7 +130,7 @@ jobs:
           timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
           payload=$(jq -n \
-            --arg title "JP Config Update" \
+            --arg title "Global Config Update" \
             --arg description "$embed_description" \
             --arg url "$commit_url" \
             --arg timestamp "$timestamp" \
@@ -140,7 +140,7 @@ jobs:
                   "title": $title,
                   "description": $description,
                   "url": $url,
-                  "color": 5666161,
+                  "color": 255,
                   "timestamp": $timestamp
                 }
               ]

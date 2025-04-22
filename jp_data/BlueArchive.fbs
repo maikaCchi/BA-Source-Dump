@@ -28,9 +28,9 @@ enum FurnitureSubCategory: int{
     Closet = 1,
     Chair = 2,
     Bed = 3,
-    FurnitureEtc = 4,
-    FurnitureSubCategory1 = 5,
-    Prop = 6,
+    Prop = 4,
+    FurnitureEtc = 5,
+    FurnitureSubCategory1 = 6,
     HomeAppliance = 7,
     WallDecoration = 8,
     FloorDecoration = 9,
@@ -1003,7 +1003,8 @@ enum EventContentType: int{
     ScenarioCollection = 35,
     ScenarioShortcut = 36,
     SeasonalEvent = 37,
-    MiniShop = 38
+    MiniShop = 38,
+    MiniGameRoad = 39
 }
 
 enum OpenCondition: int{
@@ -1929,6 +1930,29 @@ enum DreamMakerEndingRewardType: int{
     LoopEndingReward = 2
 }
 
+enum RoadPuzzleMapTileType: int{
+    None = 0,
+    Start = 1,
+    End = 2,
+    Transit = 3,
+    Obstacle = 4,
+    Empty = 5
+}
+
+enum RoadPuzzleRailTileType: int{
+    None = 0,
+    Straight = 1,
+    CurveBig = 2,
+    CurveSmall = 3
+}
+
+enum RoadPuzzleVoiceCondition: int{
+    None = 0,
+    TrainDepart = 1,
+    RailConnectSuccess = 2,
+    SaveSuccess = 3
+}
+
 enum Geas: int{
     ForwardProjectile = 0,
     DiagonalProjectile = 1,
@@ -2220,7 +2244,10 @@ enum MissionCompleteConditionType: int{
     Reset_ClearTimeLimitDefenseFromSecond = 168,
     Reset_JoinMultiFloorRaidCount = 169,
     Reset_GivePresentCharacterCount = 170,
-    Reset_CharacterInviteCount = 171
+    Reset_CharacterInviteCount = 171,
+    Reset_RoadpuzzleTileCount = 172,
+    Reset_ClearSpecificRoundRoadpuzzle = 173,
+    Reset_ClearCountRoadpuzzle = 174
 }
 
 enum AccountAchievementType: int{
@@ -2850,7 +2877,8 @@ enum School: int{
     SCHALE = 12,
     ETC = 13,
     Tokiwadai = 14,
-    Sakugawa = 15
+    Sakugawa = 15,
+    Highlander = 16
 }
 
 enum EtcSchool: int{
@@ -3149,7 +3177,7 @@ enum ShopFilterType: int{
     Event = 25,
     ChaserTotalTicket = 26,
     SchoolTotalTicket = 27,
-    ShopFilterDUMMY_1 = 28,
+    Highlander = 28,
     ShopFilterDUMMY_2 = 29,
     ShopFilterDUMMY_3 = 30,
     ShopFilterDUMMY_4 = 31,
@@ -6327,7 +6355,9 @@ enum Club: int{
     KnowledgeLiberationFront = 46,
     Hyakkayouran = 47,
     ShinySparkleSociety = 48,
-    AbydosStudentCouncil = 49
+    AbydosStudentCouncil = 49,
+    CentralControlCenter = 50,
+    FreightLogisticsDepartment = 51
 }
 
 enum UnderCoverItemCategory: int{
@@ -7052,6 +7082,7 @@ table CharacterExcel{
     CanFix: bool;
     CanCrowdControl: bool;
     CanBattleItemMove: bool;
+    IgnoreObstacle: bool;
     IsAirUnit: bool;
     AirUnitHeight: long;
     Tags: [Tag];
@@ -7796,6 +7827,8 @@ table ConstCombatExcel{
     EchelonExtensionEchelonInitCommonCost: int;
     EchelonExtensionCostRegenRatio: long;
     CheckCheaterMaxUseCostMultiFloorRaid: int;
+    ExcessiveTouchCheckTime: float;
+    ExcessiveTouchCheckCount: int;
 }
 
 table ConstCommonExcelTable{
@@ -8010,6 +8043,27 @@ table ConstFieldExcel{
     ThinkDialogDurationDefault: int;
     IdleThinkDelayMin: int;
     IdleThinkDelayMax: int;
+}
+
+table ConstMinigameRoadPuzzleExcelTable{
+    DataList: [ConstMinigameRoadPuzzleExcel];
+}
+
+table ConstMinigameRoadPuzzleExcel{
+    RoadPuzzleMapBoundaryOffsetLeft: float;
+    RoadPuzzleMapBoundaryOffsetRight: float;
+    RoadPuzzleMapBoundaryOffsetTop: float;
+    RoadPuzzleMapBoundaryOffsetBottom: float;
+    RoadPuzzleMapCenterOffsetX: float;
+    RoadPuzzleMapCenterOffsetY: float;
+    CameraAngle: float;
+    CameraZoomMax: float;
+    CameraZoomMin: float;
+    CameraZoomDefault: float;
+    StageLoadingProgressTime: float;
+    TileRotationDegree: int;
+    StartStageIndex: int;
+    LoopStageIndex: int;
 }
 
 table ConstMiniGameShootingExcelTable{
@@ -8289,6 +8343,7 @@ table EliminateRaidSeasonManageExcel{
     SeasonId: long;
     SeasonDisplay: long;
     SeasonStartData: string;
+    EndNoteLabelStartDate: string;
     SeasonEndData: string;
     SettlementEndDate: string;
     LobbyTableBGPath: string;
@@ -10117,6 +10172,14 @@ table MiniGameRhythmExcel{
     ComboImagePath: string;
 }
 
+table MinigameRoadExcelTable{
+    DataList: [MinigameRoadExcel];
+}
+
+table MinigameRoadExcel{
+    None: [RoadPuzzleMapTileType];
+}
+
 table MiniGameShootingCharacterExcelTable{
     DataList: [MiniGameShootingCharacterExcel];
 }
@@ -10659,6 +10722,7 @@ table RaidSeasonManageExcel{
     SeasonId: long;
     SeasonDisplay: long;
     SeasonStartData: string;
+    EndNoteLabelStartDate: string;
     SeasonEndData: string;
     SettlementEndDate: string;
     OpenRaidBossGroup: [string];
@@ -11365,6 +11429,7 @@ table TimeAttackDungeonSeasonManageExcelTable{
 table TimeAttackDungeonSeasonManageExcel{
     Id: long;
     StartDate: string;
+    EndNoteLabelStartDate: string;
     EndDate: string;
     UISlot: long;
     DungeonId: long;
@@ -12447,6 +12512,89 @@ table MinigameDreamVoiceExcel{
     VoiceClip: uint;
 }
 
+table MiniGameRoadPuzzleAdditionalRewardExcel{
+    EventContentId: long;
+    UniqueId: long;
+    RewardParcelType: ParcelType;
+    RewardParcelId: long;
+    RewardParcelAmount: long;
+}
+
+table MiniGameRoadPuzzleInfoExcel{
+    EventContentId: long;
+    EventUseCostType: ParcelType;
+    EventUseCostId: long;
+    CostGoodsId: long;
+    RailSetRewardId: long;
+    InstantClearRound: int;
+}
+
+table MinigameRoadPuzzleMapExcel{
+    EventContentId: long;
+    UniqueId: long;
+    MapGroupId: long;
+    Map: string;
+    MapBG: string;
+    BGMId: long;
+    AvailableRailTile: [long];
+    AvailableRailTileAmount: [long];
+    OriginalTileCount: [long];
+    TrainSpeed: float;
+}
+
+table MinigameRoadPuzzleMapTileExcel{
+    EventContentId: long;
+    UniqueId: long;
+    PrefabName: string;
+    MapTileType: RoadPuzzleMapTileType;
+}
+
+table MiniGameRoadPuzzleRailSetRewardExcel{
+    EventContentId: long;
+    UniqueId: long;
+    LocalizePrefabID: string;
+    RewardParcelType: [ParcelType];
+    RewardParcelId: [long];
+    RewardParcelAmount: [long];
+}
+
+table MinigameRoadPuzzleRailTileExcel{
+    EventContentId: long;
+    UniqueId: long;
+    GroupId: long;
+    OriginalTile: bool;
+    PrefabName: string;
+    RailTileType: RoadPuzzleRailTileType;
+}
+
+table MiniGameRoadPuzzleRewardExcel{
+    EventContentId: long;
+    UniqueId: long;
+    RewardParcelType: [ParcelType];
+    RewardParcelId: [long];
+    RewardParcelAmount: [long];
+}
+
+table MinigameRoadPuzzleRoadRoundExcel{
+    EventContentId: long;
+    UniqueId: long;
+    Round: int;
+    IsLoop: bool;
+    EnterScenarioGroupId: long;
+    EndScenarioGroupId: long;
+    MapGroupId: long;
+    RoundReward: long;
+    AdditionalRewardID: [long];
+    AdditionalRewardAmount: [int];
+}
+
+table MiniGameRoadPuzzleVoiceExcel{
+    EventContentId: long;
+    UniqueId: long;
+    VoiceCondition: RoadPuzzleVoiceCondition;
+    VoiceClip: uint;
+}
+
 table MissionEmergencyCompleteExcel{
     MissionId: long;
     EmergencyComplete: bool;
@@ -12465,6 +12613,7 @@ table MultiFloorRaidSeasonManageExcel{
     LobbyEnterScenario: uint;
     ShowLobbyBanner: bool;
     SeasonStartDate: string;
+    EndNoteLabelStartDate: string;
     SeasonEndDate: string;
     SettlementEndDate: string;
     OpenRaidBossGroupId: string;

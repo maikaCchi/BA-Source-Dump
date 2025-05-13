@@ -43,6 +43,19 @@ class TableEncryptionService:
             key[: len(value) % len(key)],
         )
 
+    def _calculate_modulus(self, key: bytes) -> int:
+        if key == b'':
+            return 1
+            
+        modulus = key[0] % 10
+        if modulus <= 1:
+            modulus = 7
+            
+        if key[0] & 1:
+            modulus = -modulus
+            
+        return modulus
+
     def _xor_struct(self, value: Union[int, float], key: bytes, struct_format: str) -> Union[int, float]:
         struct = self._struct_formats[struct_format]
         return struct.unpack(self._xor(struct.pack(value), key))[0]
@@ -63,13 +76,15 @@ class TableEncryptionService:
         return self._xor_struct(value, key, 'uint8') if value else 0
 
     def convert_float(self, value: float, key: bytes) -> float:
-        return self.convert_int(int(value), key) * 0.00001 if value else 0.0
+        modulus = self._calculate_modulus(key)
+        return (value / modulus) / 10000.0 if value and modulus != 1 else value
 
     def convert_double(self, value: float, key: bytes) -> float:
         return self.convert_long(int(value), key) * 0.00001 if value else 0.0
 
     def encrypt_float(self, value: float, key: bytes) -> float:
-        return self.convert_int(int(value * 100000), key) if value else 0.0
+        modulus = self._calculate_modulus(key)
+        return (value * 10000.0) * modulus if value and modulus != 1 else value
 
     def encrypt_double(self, value: float, key: bytes) -> float:
         return self.convert_long(int(value * 100000), key) if value else 0.0

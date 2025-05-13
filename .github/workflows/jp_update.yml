@@ -2,10 +2,13 @@ name: JP Update
 
 on:
   schedule:
-    # Run every Wednesday at 03:00, 05:00, and 07:00 UTC
+    # Run every Wednesday at 03:00, 05:00, 07:00, 09:00 UTC
     - cron: '0 3 * * 3'
     - cron: '0 5 * * 3'
     - cron: '0 7 * * 3'
+    - cron: '0 9 * * 3'
+    # Run everyday at 07:00
+    - cron: '0 7 * * *'
   workflow_dispatch:
 
 permissions:

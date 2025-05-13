@@ -12,7 +12,6 @@ class FileDownloader:
         self.scraper = cloudscraper.create_scraper()
 
     def download(self):
-        """Downloads the file from the URL to the local filepath."""
         try:
             response = self.scraper.get(self.url, stream=True)
             response.raise_for_status()
@@ -32,7 +31,6 @@ class FileDownloader:
             print(f"Error during download: {e}")
 
     def print_progress(self, downloaded, total_size):
-        """Prints the download progress as a percentage along with downloaded and total sizes (in KB)."""
         if total_size > 0:
             percent = downloaded / total_size * 100
             print(
@@ -56,7 +54,6 @@ class FileExtractor:
         os.makedirs(self.extract_dir, exist_ok=True)
 
     def extract_xapk(self):
-        """Extracts the XAPK (zip file) to the designated directory and then extracts specific APKs."""
         try:
             with zipfile.ZipFile(self.file_path, 'r') as zip_ref:
                 zip_ref.extractall(self.extract_dir)
@@ -70,7 +67,6 @@ class FileExtractor:
             self.extract_apk(apk_name, dest_dir)
     
     def extract_il2cpp(self):
-        """Extracts the il2cpp zip archive from the extraction directory to its own folder."""
         destination_dir = os.path.join(self.extract_dir, 'Il2CppDumper')
         os.makedirs(destination_dir, exist_ok=True)
         
@@ -82,7 +78,6 @@ class FileExtractor:
             print(f"Error extracting {self.file_path}: {e}") 
 
     def extract_apk(self, apk_filename, destination_dir):
-        """Extracts an APK file (which is a zip archive) to the specified destination directory."""
         apk_path = os.path.join(self.extract_dir, apk_filename)
         if os.path.exists(apk_path):
             os.makedirs(destination_dir, exist_ok=True)

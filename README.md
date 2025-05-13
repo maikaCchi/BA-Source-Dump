@@ -1,6 +1,11 @@
-# BA-Data
+# BA-Source-Dump
 
-Work in progress
+- Dump BA Source Data using il2cpp.
+- Keep track of the latest config/resource/dump.
+- Also dump FBS data.
+
+This workflow runs every weekday at 03:00, 05:00, 07:00, 09:00 UTC.
+And runs everyday at 07:00
 
 # Credits
 - [Blue Archive Asset Downloader](https://github.com/Deathemonic/BA-AD)

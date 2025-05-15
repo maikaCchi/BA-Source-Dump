@@ -1,6 +1,6 @@
 # BA-Source-Dump
 
-- Dump BA Source Data using il2cpp.
+- Dump BA Source Data using il2cppdumper.
 - Keep track of the latest config/resource/dump.
 - Also dump FBS data.
 
@@ -9,3 +9,4 @@ And runs everyday at 07:00
 
 # Credits
 - [Blue Archive Asset Downloader](https://github.com/Deathemonic/BA-AD)
+- [IL2CPPDumper](https://github.com/Perfare/Il2CppDumper)

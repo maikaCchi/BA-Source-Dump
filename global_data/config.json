@@ -6,14 +6,17 @@
     "min_build_version": "1.76.341379",
     "min_build_number": "341379",
     "patch": {
-        "patch_version": 1349,
-        "resource_path": "https://ba.dn.nexoncdn.co.kr/com.nexon.bluearchive/b56f39e0b6314b47/resource-data.json",
+        "patch_version": 1357,
+        "resource_path": "https://ba.dn.nexoncdn.co.kr/com.nexon.bluearchive/d23f1ca773b24383/resource-data.json",
         "bdiff_path": [
             {
-                "1348": "https://ba.dn.nexoncdn.co.kr/com.nexon.bluearchive/nxpatch/0da16a1713634c38/bdiff-data.json"
+                "1349": "https://ba.dn.nexoncdn.co.kr/com.nexon.bluearchive/nxpatch/910961dbea45479c/bdiff-data.json"
             },
             {
-                "1339": "https://ba.dn.nexoncdn.co.kr/com.nexon.bluearchive/nxpatch/a039ec505f864bd2/bdiff-data.json"
+                "1348": "https://ba.dn.nexoncdn.co.kr/com.nexon.bluearchive/nxpatch/0750935735104c9d/bdiff-data.json"
+            },
+            {
+                "1339": "https://ba.dn.nexoncdn.co.kr/com.nexon.bluearchive/nxpatch/599d26bbc0ad4c16/bdiff-data.json"
             }
         ]
     }

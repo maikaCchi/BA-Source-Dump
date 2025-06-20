@@ -93,7 +93,7 @@ jobs:
           git commit -m "$commit_msg"
 
           # Push changes to the submodule's remote repository
-          git push ${{ secrets.SUBMODULE_REPO }} HEAD:main
+          git push https://ArkanDash:${{ secrets.SUBMODULE_TOKEN }}@github.com/ArkanDash/MoeXComDataDump.git HEAD:main
           echo "Submodule changes pushed successfully."
 
       - name: Update Main Repository Reference

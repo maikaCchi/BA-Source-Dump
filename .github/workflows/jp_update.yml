@@ -7,33 +7,32 @@ on:
     - cron: '0 5 * * 3'
     - cron: '0 7 * * 3'
     - cron: '0 9 * * 3'
-    # Run everyday at 07:00 UTC
+    # Run everyday at 07:00
     - cron: '0 7 * * *'
-  workflow_dispatch: # Allows manual triggering of the workflow
+  workflow_dispatch:
 
 permissions:
-  contents: write # Grants write permissions to the workflow for committing and pushing
+  contents: write
 
 jobs:
   update-game-url:
-    environment: "GitHub Action" # Specifies the environment for secrets/variables
-    runs-on: ubuntu-latest # The operating system for the job
+    environment: "GitHub Action"
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fetch all history for proper submodule handling
-          submodules: true # Initialize and update submodules
+          fetch-depth: 0
+          submodules: true
 
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x' # Use any Python 3.x version
+          python-version: '3.x'
 
       - name: Install Dependencies
         run: |
-          # Install Python dependencies if requirements.txt exists
           if [ -f requirements.txt ]; then
             pip install -r requirements.txt
           else
@@ -41,56 +40,36 @@ jobs:
           fi
 
       - name: Run getApkData.py
-        run: python getApkData.py # Execute the script to get APK data
+        run: python getApkData.py
 
       - name: Set executable permissions for dumpers
         run: |
-          # Ensure dumper tools are executable
           chmod +x ./dump_lib/Il2CppDumper/Il2CppDumper
           chmod +x ./dump_lib/FbsDumper/FbsDumper
 
       - name: Run getJPVersion.py
-        run: python getJPVersion.py # Execute the script to get JP version data
+        run: python getJPVersion.py
 
       - name: Configure Git user
         run: |
-          # Configure Git user for commits made by the action
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
 
       - name: Check for changes in submodule
-        id: check_submodule_diff # ID for referencing outputs from this step
+        id: check_submodule_diff
         run: |
-          # Stage any changes within the 'moexcom_data' submodule
+          # Check for changes within the submodule itself
+          # First, ensure the submodule is updated to whatever the script dumped
           git -C moexcom_data add .
           
-          # Check if there are any staged changes in the submodule
+          # Check if there are any staged changes (new or modified files) in the submodule
           if git -C moexcom_data diff --cached --quiet; then
               echo "No changes detected within moexcom_data submodule."
-              echo "submodule_changed=false" >> $GITHUB_OUTPUT # Set output for no changes
+              echo "submodule_changed=false" >> $GITHUB_OUTPUT
           else
               echo "Changes detected within moexcom_data submodule. Committing these changes."
-              echo "submodule_changed=true" >> $GITHUB_OUTPUT # Set output for changes
+              echo "submodule_changed=true" >> $GITHUB_OUTPUT
           fi
-
-      - name: Extract Submodule Config Info
-        id: extract_config # ID for referencing outputs from this step
-        if: steps.check_submodule_diff.outputs.submodule_changed == 'true'
-        run: |
-          # Parse config.json from the submodule and set as outputs
-          RAW_GAME_URL=$(jq -r '.ServerInfoDataUrl' moexcom_data/jp_data/config.json)
-          RAW_CATALOG_URL=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' moexcom_data/jp_data/config.json)
-          CATALOG_VERSION=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].Name' moexcom_data/jp_data/config.json)
-
-          GAME_URL_BASENAME=$(echo "$RAW_GAME_URL" | sed -n 's#.*/\([^/]*\)\.json#\1#p')
-          CATALOG_ID=$(echo "$RAW_CATALOG_URL" | sed -n 's#.*/\([^/]*\)$#\1#p')
-
-          echo "game_url_basename=$GAME_URL_BASENAME" >> $GITHUB_OUTPUT
-          echo "catalog_id=$CATALOG_ID" >> $GITHUB_OUTPUT
-          echo "catalog_version=$CATALOG_VERSION" >> $GITHUB_OUTPUT
-          echo "raw_game_url=$RAW_GAME_URL" >> $GITHUB_OUTPUT
-          echo "raw_catalog_url=$RAW_CATALOG_URL" >> $GITHUB_OUTPUT
-
 
       - name: Commit and Push Submodule Changes
         if: steps.check_submodule_diff.outputs.submodule_changed == 'true'
@@ -98,34 +77,46 @@ jobs:
           # Navigate into the submodule directory
           cd moexcom_data
 
-          # Set up the remote URL for the submodule to include the token for authentication
-          # Replace 'ArkanDash' with the actual owner of your MoeXComDataDump repository if different.
-          git remote set-url origin "https://ArkanDash:${{ secrets.SUBMODULE_TOKEN }}@github.com/ArkanDash/MoeXComDataDump.git"
+          # Get commit message parts from the newly generated config.json inside the submodule
+          # Note: The path here is relative to the submodule's root.
+          raw_game_url=$(jq -r '.ServerInfoDataUrl' jp_data/config.json)
+          raw_catalog=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' jp_data/config.json)
 
-          # Use extracted outputs for the commit message
-          SUBMODULE_COMMIT_MSG="${{ steps.extract_config.outputs.game_url_basename }}_${{ steps.extract_config.outputs.catalog_id }}"
-          echo "Submodule Commit message: $SUBMODULE_COMMIT_MSG"
+          game_url=$(echo "$raw_game_url" | sed -n 's#.*/\([^/]*\)\.json#\1#p')
+          catalog=$(echo "$raw_catalog" | sed -n 's#.*/\([^/]*\)$#\1#p')
 
-          # Commit staged changes within the submodule
-          git commit -m "$SUBMODULE_COMMIT_MSG"
+          commit_msg="${game_url}_${catalog}"
+          echo "Submodule Commit message: $commit_msg"
 
-          # Push committed changes to the submodule's remote repository
-          git push origin main
+          # Commit changes within the submodule
+          # We already added all changes with `git -C moexcom_data add .` in the previous step
+          git commit -m "$commit_msg"
+
+          # Push changes to the submodule's remote repository
+          git push "https://ArkanDash:${{ secrets.SUBMODULE_TOKEN }}@github.com/ArkanDash/MoeXComDataDump.git" HEAD:main
           echo "Submodule changes pushed successfully."
 
       - name: Update Main Repository Reference
         if: steps.check_submodule_diff.outputs.submodule_changed == 'true'
         run: |
-          # Navigate back to the main repository root (current working directory is already main repo root for this step)
-          # Add the submodule directory to stage its updated commit reference
-          git add moexcom_data
+          # Navigate back to the main repository root
+          # The previous step's `cd moexcom_data` will be reset on a new run step.
+          # So we just need to add and commit the submodule reference from the main repo root.
+          git add moexcom_data # Add the submodule directory (which updates its commit reference)
 
-          # Define the commit message for the main repository
-          MAIN_REPO_COMMIT_MSG="Update MoeXComDataDump submodule for JP"
-          echo "Main Repository Commit message: $MAIN_REPO_COMMIT_MSG"
+          # Get commit message parts from the newly generated config.json inside the submodule
+          # Path here is relative to the main repo's root for the submodule's content.
+          raw_game_url=$(jq -r '.ServerInfoDataUrl' moexcom_data/jp_data/config.json)
+          raw_catalog=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' moexcom_data/jp_data/config.json)
+
+          game_url=$(echo "$raw_game_url" | sed -n 's#.*/\([^/]*\)\.json#\1#p')
+          catalog=$(echo "$raw_catalog" | sed -n 's#.*/\([^/]*\)$#\1#p')
+
+          commit_msg="Update MoeXComDataDump submodule for JP"
+          echo "Main Repository Commit message: $commit_msg"
 
           # Commit the updated submodule reference in the main repository
-          git commit -m "$MAIN_REPO_COMMIT_MSG"
+          git commit -m "$commit_msg"
 
           # Push the commit to the main branch of this repository
           git push origin HEAD:main
@@ -138,17 +129,27 @@ jobs:
           commit_hash=$(git rev-parse HEAD)
           commit_url="https://github.com/${GITHUB_REPOSITORY}/commit/${commit_hash}"
 
-          # Construct raw data links (will point to the main repo's commit with submodule data)
+          # IMPORTANT: Update these links to point to the submodule content
+          # These links will be correct because they refer to the main repo's commit
+          # which *points* to the updated submodule commit.
           dump_data_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/moexcom_data/jp_data/dump.cs"
           fbs_data_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/moexcom_data/jp_data/BlueArchive.fbs"
           config_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/moexcom_data/jp_data/config.json"
 
-          # Use outputs from the 'extract_config' step
+          # Retrieve data from the config.json located inside the submodule
+          # Path here is relative to the main repo's root.
+          raw_game_url=$(jq -r '.ServerInfoDataUrl' moexcom_data/jp_data/config.json)
+          game_url=$(echo "$raw_game_url" | sed -n 's#.*/\([^/]*\)\.json#\1#p')
+
+          catalog_version=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].Name' moexcom_data/jp_data/config.json)
+          raw_catalog=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' moexcom_data/jp_data/config.json)
+          catalog_id=$(echo "$raw_catalog" | sed -n 's#.*/\([^/]*\)$#\1#p')
+
           embed_description=$(cat <<EOF
           **Game Info**
-          Server Info Data Url: [${{ steps.extract_config.outputs.game_url_basename }}](${{ steps.extract_config.outputs.raw_game_url }})
-          Catalog Version: ${{ steps.extract_config.outputs.catalog_version }}
-          Catalog Url: ${{ steps.extract_config.outputs.catalog_id }}
+          Server Info Data Url: [${game_url}](${raw_game_url})
+          Catalog Version: ${catalog_version}
+          Catalog Url: ${catalog_id}
 
           **Game Data**
           Dump Data: [dump.cs](${dump_data_link})

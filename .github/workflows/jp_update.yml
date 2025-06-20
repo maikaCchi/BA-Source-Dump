@@ -42,7 +42,7 @@ jobs:
       - name: Run getApkData.py
         run: python getApkData.py
 
-      - name: Set executable permissions for Il2CppDumper
+      - name: Set executable permissions for dumpers
         run: |
           chmod +x ./dump_lib/Il2CppDumper/Il2CppDumper
           chmod +x ./dump_lib/FbsDumper/FbsDumper
@@ -93,7 +93,7 @@ jobs:
           git commit -m "$commit_msg"
 
           # Push changes to the submodule's remote repository
-          git push origin HEAD:main # Assuming 'main' is the default branch for MoeXComDataDump
+          git push ${{ secrets.SUBMODULE_REPO }} HEAD:main
           echo "Submodule changes pushed successfully."
 
       - name: Update Main Repository Reference

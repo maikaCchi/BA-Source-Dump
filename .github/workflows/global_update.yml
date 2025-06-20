@@ -24,6 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: true
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -42,41 +43,42 @@ jobs:
         run: python getApkData.py --region global
 
       - name: Set executable permissions for Il2CppDumper
-        run: chmod +x ./global_extracted/Il2CppDumper/Il2CppDumper
+        run: |
+          chmod +x ./dump_lib/Il2CppDumper/Il2CppDumper
+          chmod +x ./dump_lib/FbsDumper/FbsDumper
 
-      - name: Run getJPVersion.py
+      - name: Run getGlobalVersion.py
         run: python getGlobalVersion.py
 
-      - name: Check if config.json changed
-        id: check_diff
+      - name: Configure Git user
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
-          
-          config_file="global_data/config.json"
-          changed_flag=false
 
-          if git ls-tree -r origin/main --name-only | grep -Fxq "$config_file"; then
-            echo "$config_file exists locally. Checking for differences against origin/main..."
-            if ! git diff --quiet origin/main -- "$config_file"; then
-              echo "Changes detected in $config_file compared to origin/main (or file is new)."
-              changed_flag=true
-            else
-              echo "$config_file exists locally but is identical to origin/main. No git changes needed."
-              # changed_flag remains false
-            fi
+      - name: Check for changes in submodule
+        id: check_submodule_diff
+        run: |
+          # Check for changes within the submodule itself
+          # First, ensure the submodule is updated to whatever the script dumped
+          git -C moexcom_data add .
+          
+          # Check if there are any staged changes (new or modified files) in the submodule
+          if git -C moexcom_data diff --cached --quiet; then
+              echo "No changes detected within moexcom_data submodule."
+              echo "submodule_changed=false" >> $GITHUB_OUTPUT
           else
-            echo "$config_file does not exist on origin/main. Add the file."
-            changed_flag=true
+              echo "Changes detected within moexcom_data submodule. Committing these changes."
+              echo "submodule_changed=true" >> $GITHUB_OUTPUT
           fi
 
-          echo "changed=$changed_flag" >> $GITHUB_OUTPUT
-
-      - name: Commit and Push Config Update
-        if: steps.check_diff.outputs.changed == 'true'
+      - name: Commit and Push Submodule Changes
+        if: steps.check_submodule_diff.outputs.submodule_changed == 'true'
         run: |
-          echo "Attempting to commit and push changes..."
-          # Extract data for commit message using jq and sed
+          # Navigate into the submodule directory
+          cd moexcom_data
+
+          # Get commit message parts from the newly generated config.json inside the submodule
+          # Note: The path here is relative to the submodule's root.
           raw_game_url=$(jq -r '.ServerInfoDataUrl' global_data/config.json)
           raw_catalog=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' global_data/config.json)
 
@@ -85,35 +87,63 @@ jobs:
           catalog_id=$(echo "$resource_path" | sed -n 's#.*/com\.nexon\.bluearchive/\([^/]*\)/.*#\1#p')
           catalog_version=$(jq -r '.patch_version' global_data/resources.json)
 
-          # Construct commit message
           commit_msg="${game_version}_${catalog_version}_${catalog_id}"
-          echo "Commit message: $commit_msg"
+          echo "Submodule Commit message: $commit_msg"
 
-          # Add the files that should be committed
-          git add global_data/config.json global_data/dump.cs global_data/BlueArchive.fbs global_data/resources.json
-
-          # Commit the changes
+          # Commit changes within the submodule
+          # We already added all changes with `git -C moexcom_data add .` in the previous step
           git commit -m "$commit_msg"
 
-          # Push the commit to the main branch
+          # Push changes to the submodule's remote repository
+          git push origin HEAD:main # Assuming 'main' is the default branch for MoeXComDataDump
+          echo "Submodule changes pushed successfully."
+
+      - name: Update Main Repository Reference
+        if: steps.check_submodule_diff.outputs.submodule_changed == 'true'
+        run: |
+          # Navigate back to the main repository root
+          # The previous step's `cd moexcom_data` will be reset on a new run step.
+          # So we just need to add and commit the submodule reference from the main repo root.
+          git add moexcom_data # Add the submodule directory (which updates its commit reference)
+
+          # Get commit message parts from the newly generated config.json inside the submodule
+          # Path here is relative to the main repo's root for the submodule's content.
+          raw_game_url=$(jq -r '.ServerInfoDataUrl' moexcom_data/global_data/config.json)
+          raw_catalog=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' moexcom_data/global_data/config.json)
+
+          game_version=$(jq -r '.latest_build_version' moexcom_data/global_data/config.json)
+          resource_path=$(jq -r '.patch.resource_path' moexcom_data/global_data/config.json)
+          catalog_id=$(echo "$resource_path" | sed -n 's#.*/com\.nexon\.bluearchive/\([^/]*\)/.*#\1#p')
+          catalog_version=$(jq -r '.patch_version' moexcom_data/global_data/resources.json)
+
+          commit_msg="Update MoeXComDataDump submodule for Global"
+          echo "Main Repository Commit message: $commit_msg"
+
+          # Commit the updated submodule reference in the main repository
+          git commit -m "$commit_msg"
+
+          # Push the commit to the main branch of this repository
           git push origin HEAD:main
-          echo "Changes pushed successfully."
+          echo "Main repository submodule reference pushed successfully."
 
       - name: Send update to Discord
-        if: steps.check_diff.outputs.changed == 'true'
+        if: steps.check_submodule_diff.outputs.submodule_changed == 'true'
         run: |
+          # Get the latest commit hash of the *main* repository that includes the submodule update
           commit_hash=$(git rev-parse HEAD)
           commit_url="https://github.com/${GITHUB_REPOSITORY}/commit/${commit_hash}"
 
-          dump_data_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/global_data/dump.cs"
-          fbs_data_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/global_data/BlueArchive.fbs"
-          config_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/global_data/config.json"
-          resources_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/global_data/resources.json"
+          # IMPORTANT: Update these links to point to the submodule content
+          dump_data_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/moexcom_data/global_data/dump.cs"
+          fbs_data_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/moexcom_data/global_data/BlueArchive.fbs"
+          config_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/moexcom_data/global_data/config.json"
+          resources_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/moexcom_data/global_data/resources.json"
 
-          game_version=$(jq -r '.latest_build_version' global_data/config.json)
-          resource_path=$(jq -r '.patch.resource_path' global_data/config.json)
+          # Retrieve data from the config.json located inside the submodule
+          game_version=$(jq -r '.latest_build_version' moexcom_data/global_data/config.json)
+          resource_path=$(jq -r '.patch.resource_path' moexcom_data/global_data/config.json)
           catalog_id=$(echo "$resource_path" | sed -n 's#.*/com\.nexon\.bluearchive/\([^/]*\)/.*#\1#p')
-          catalog_version=$(jq -r '.patch_version' global_data/resources.json)
+          catalog_version=$(jq -r '.patch_version' moexcom_data/global_data/resources.json)
 
           embed_description=$(cat <<EOF
           **Game Info**

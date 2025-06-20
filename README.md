@@ -10,3 +10,6 @@ And runs everyday at 07:00
 # Credits
 - [Blue Archive Asset Downloader](https://github.com/Deathemonic/BA-AD)
 - [IL2CPPDumper](https://github.com/Perfare/Il2CppDumper)
+- [IL2CPPDumper Linux Build](https://github.com/AndnixSH/Il2CppDumper)
+- [FBSDumperV2](https://github.com/Hiro420/FbsDumperV2)
+- [FBSDumperV2 CLI](https://github.com/ArkanDash/FbsDumperV2)

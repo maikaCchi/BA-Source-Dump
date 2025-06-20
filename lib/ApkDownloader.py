@@ -77,6 +77,17 @@ class FileExtractor:
         except Exception as e:
             print(f"Error extracting {self.file_path}: {e}") 
 
+    def extract_fbsdumper(self):
+        destination_dir = os.path.join(self.extract_dir, 'FbsDumper')
+        os.makedirs(destination_dir, exist_ok=True)
+        
+        try:
+            with zipfile.ZipFile(self.file_path, 'r') as zip_ref:
+                zip_ref.extractall(destination_dir)
+            print(f"Extracted {self.file_path} to {destination_dir}")
+        except Exception as e:
+            print(f"Error extracting {self.file_path}: {e}") 
+
     def extract_apk(self, apk_filename, destination_dir):
         apk_path = os.path.join(self.extract_dir, apk_filename)
         if os.path.exists(apk_path):

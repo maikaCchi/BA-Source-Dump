@@ -4,27 +4,32 @@ import requests
 
 from lib.CatalogFetcher import decrypt_game_config, find_game_config
 from lib.Il2cppDumper import Il2CppDumperCLI
-from lib.FBSGenerator import FBSGenerator
+from lib.FBSDumper import FbsDumperCLI
 
 if __name__ == "__main__":
-    extract_dir = os.path.join(os.getcwd(), 'jp_extracted')
-    dumped_dir = os.path.join(os.getcwd(), 'jp_dumped')
-    data_dir = os.path.join(os.getcwd(), 'jp_data')
-    os.makedirs(data_dir, exist_ok=True)
+    # Setup paths
     os_system = platform.system()
-
-    # Dump il2cpp data from the apk file
-    exec_path = os.path.join(extract_dir, "Il2CppDumper", "Il2CppDumper")
-    lib_path = os.path.join(extract_dir, "config_arm64_v8a", "lib", "arm64-v8a", "libil2cpp.so")
+    lib_dir = os.path.join(os.getcwd(), f'dump_lib')
+    extract_dir = os.path.join(os.getcwd(), 'jp_extracted')
+    data_dir = os.path.join(os.getcwd(), 'moexcom_data', 'jp_data')
+    libil2cpp_path = os.path.join(extract_dir, "config_arm64_v8a", "lib", "arm64-v8a", "libil2cpp.so")
     metadata_path = os.path.join(extract_dir, "BlueArchive_apk", "assets", "bin", "Data", "Managed", "Metadata", "global-metadata.dat")
+    dummydll_dir = os.path.join(data_dir, "DummyDll")
+    il2cpp_exec_path = os.path.join(lib_dir, "Il2CppDumper", "Il2CppDumper")
+    fbsdumper_exec_path = os.path.join(lib_dir, "FbsDumper", "FbsDumper")
     if os_system == "Windows":
-        exec_path = os.path.join(extract_dir, "Il2CppDumper", "Il2CppDumper.exe")
-    Il2CppDumperCLI(exec_path).dump(lib_path, metadata_path, dumped_dir)
+        il2cpp_exec_path = os.path.join(lib_dir, "Il2CppDumper", "Il2CppDumper.exe")
+        fbsdumper_exec_path = os.path.join(lib_dir, "FbsDumper", "FbsDumper.exe")
+    os.makedirs(data_dir, exist_ok=True)
 
-    # Dump fbs data from dump.cs from il2cpp dumped apk
-    dump_cs_path = os.path.join(dumped_dir, "dump.cs")
-    fbs_path = os.path.join(dumped_dir, "BlueArchive.fbs")
-    FBSGenerator(dump_cs_path, fbs_path).generate_fbs()
+    # Dump il2cpp data from the apk file & Generate fbs data
+    Il2CppDumperCLI(il2cpp_exec_path).dump(libil2cpp_path, metadata_path, data_dir)
+    FbsDumperCLI(fbsdumper_exec_path).dump(dummydll_dir, libil2cpp_path, data_dir)
+
+    # Old fbs generator
+    # dump_cs_path = os.path.join(dumped_dir, "dump.cs")
+    # fbs_path = os.path.join(dumped_dir, "BlueArchive.fbs")
+    # FBSGenerator(dump_cs_path, fbs_path).generate_fbs()
 
     # Get the game url
     config_url = decrypt_game_config(find_game_config(os.path.join(extract_dir, "UnityDataAssetPack", "assets", "bin", "Data")))
@@ -45,9 +50,5 @@ if __name__ == "__main__":
         print(f"Config data has been written to {output_file_path}")
     except requests.RequestException as e:
         print(f"Error fetching config data: {e}")
-
-    # Move dump.cs and BlueArchive.fbs to the data folder
-    os.replace(dump_cs_path, os.path.join(data_dir, "dump.cs"))
-    os.replace(fbs_path, os.path.join(data_dir, "BlueArchive.fbs"))
 
     print(f"Data has been moved to {data_dir}")

@@ -95,6 +95,8 @@ jobs:
           # Push changes to the submodule's remote repository
           git -c http.extraheader="Authorization: Bearer ${{ secrets.SUBMODULE_TOKEN }}" push origin main
           echo "Submodule changes pushed successfully."
+        env:
+          SUBMODULE_TOKEN: ${{ secrets.SUBMODULE_TOKEN }}
 
       - name: Update Main Repository Reference
         if: steps.check_submodule_diff.outputs.submodule_changed == 'true'

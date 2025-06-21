@@ -1,0 +1,7 @@
+dump.cs filter=lfs diff=lfs merge=lfs -text
+il2cpp.h filter=lfs diff=lfs merge=lfs -text
+script.json filter=lfs diff=lfs merge=lfs -text
+stringliteral.json filter=lfs diff=lfs merge=lfs -text
+BlueArchive.fbs filter=lfs diff=lfs merge=lfs -text
+jp_data/DummyDll/** filter=lfs diff=lfs merge=lfs -text
+global_data/DummyDll/** filter=lfs diff=lfs merge=lfs -text

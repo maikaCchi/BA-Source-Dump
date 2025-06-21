@@ -11,7 +11,7 @@ if __name__ == "__main__":
     os_system = platform.system()
     lib_dir = os.path.join(os.getcwd(), f'dump_lib')
     extract_dir = os.path.join(os.getcwd(), 'jp_extracted')
-    data_dir = os.path.join(os.getcwd(), 'moexcom_data', 'jp_data')
+    data_dir = os.path.join(os.getcwd(), 'jp_data')
     libil2cpp_path = os.path.join(extract_dir, "config_arm64_v8a", "lib", "arm64-v8a", "libil2cpp.so")
     metadata_path = os.path.join(extract_dir, "BlueArchive_apk", "assets", "bin", "Data", "Managed", "Metadata", "global-metadata.dat")
     dummydll_dir = os.path.join(data_dir, "DummyDll")

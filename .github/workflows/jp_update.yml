@@ -24,7 +24,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          submodules: true
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -39,112 +38,84 @@ jobs:
             echo "No requirements.txt found, skipping dependency installation."
           fi
 
-      - name: Run getApkData.py
+      - name: Get APK & Dumper
         run: python getApkData.py
 
-      - name: Set executable permissions for dumpers
+      - name: Set executable permissions for dumper
         run: |
           chmod +x ./dump_lib/Il2CppDumper/Il2CppDumper
           chmod +x ./dump_lib/FbsDumper/FbsDumper
 
-      - name: Run getJPVersion.py
+      - name: Run Dumper
         run: python getJPVersion.py
 
-      - name: Configure Git user
+      - name: Check if config.json changed
+        id: check_diff
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
-
-      - name: Check for changes in submodule
-        id: check_submodule_diff
-        run: |
-          # Check for changes within the submodule itself
-          # First, ensure the submodule is updated to whatever the script dumped
-          git -C moexcom_data add .
           
-          # Check if there are any staged changes (new or modified files) in the submodule
-          if git -C moexcom_data diff --cached --quiet; then
-              echo "No changes detected within moexcom_data submodule."
-              echo "submodule_changed=false" >> $GITHUB_OUTPUT
+          config_file="jp_data/config.json"
+          changed_flag=false
+
+          if git ls-tree -r origin/main --name-only | grep -Fxq "$config_file"; then
+            echo "$config_file exists locally. Checking for differences against origin/main..."
+            if ! git diff --quiet origin/main -- "$config_file"; then
+              echo "Changes detected in $config_file compared to origin/main (or file is new)."
+              changed_flag=true
+            else
+              echo "$config_file exists locally but is identical to origin/main. No git changes needed."
+              # changed_flag remains false
+            fi
           else
-              echo "Changes detected within moexcom_data submodule. Committing these changes."
-              echo "submodule_changed=true" >> $GITHUB_OUTPUT
+            echo "$config_file does not exist on origin/main. Add the file."
+            changed_flag=true
           fi
 
-      - name: Commit and Push Submodule Changes
-        if: steps.check_submodule_diff.outputs.submodule_changed == 'true'
-        run: |
-          # Navigate into the submodule directory
-          cd moexcom_data
+          echo "changed=$changed_flag" >> $GITHUB_OUTPUT
 
-          # Get commit message parts from the newly generated config.json inside the submodule
-          # Note: The path here is relative to the submodule's root.
+      - name: Commit and Push Config Update
+        if: steps.check_diff.outputs.changed == 'true'
+        run: |
+          echo "Attempting to commit and push changes..."
+          # Extract data for commit message using jq and sed
           raw_game_url=$(jq -r '.ServerInfoDataUrl' jp_data/config.json)
           raw_catalog=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' jp_data/config.json)
 
+          # Extract the part between the last "/" and ".json"
           game_url=$(echo "$raw_game_url" | sed -n 's#.*/\([^/]*\)\.json#\1#p')
+          # Extract the part after the last "/"
           catalog=$(echo "$raw_catalog" | sed -n 's#.*/\([^/]*\)$#\1#p')
 
+          # Construct commit message
           commit_msg="${game_url}_${catalog}"
-          echo "Submodule Commit message: $commit_msg"
+          echo "Commit message: $commit_msg"
 
-          # Commit changes within the submodule
-          # We already added all changes with `git -C moexcom_data add .` in the previous step
+          # Add the files that should be committed
+          git add jp_data/*
+
+          # Commit the changes
           git commit -m "$commit_msg"
 
-          # Push changes to the submodule's remote repository
-          git -c http.extraheader="Authorization: Bearer ${{ secrets.SUBMODULE_TOKEN }}" push origin main
-          echo "Submodule changes pushed successfully."
-        env:
-          SUBMODULE_TOKEN: ${{ secrets.SUBMODULE_TOKEN }}
-
-      - name: Update Main Repository Reference
-        if: steps.check_submodule_diff.outputs.submodule_changed == 'true'
-        run: |
-          # Navigate back to the main repository root
-          # The previous step's `cd moexcom_data` will be reset on a new run step.
-          # So we just need to add and commit the submodule reference from the main repo root.
-          git add moexcom_data # Add the submodule directory (which updates its commit reference)
-
-          # Get commit message parts from the newly generated config.json inside the submodule
-          # Path here is relative to the main repo's root for the submodule's content.
-          raw_game_url=$(jq -r '.ServerInfoDataUrl' moexcom_data/jp_data/config.json)
-          raw_catalog=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' moexcom_data/jp_data/config.json)
-
-          game_url=$(echo "$raw_game_url" | sed -n 's#.*/\([^/]*\)\.json#\1#p')
-          catalog=$(echo "$raw_catalog" | sed -n 's#.*/\([^/]*\)$#\1#p')
-
-          commit_msg="Update MoeXComDataDump submodule for JP"
-          echo "Main Repository Commit message: $commit_msg"
-
-          # Commit the updated submodule reference in the main repository
-          git commit -m "$commit_msg"
-
-          # Push the commit to the main branch of this repository
+          # Push the commit to the main branch
           git push origin HEAD:main
-          echo "Main repository submodule reference pushed successfully."
+          echo "Changes pushed successfully."
 
       - name: Send update to Discord
-        if: steps.check_submodule_diff.outputs.submodule_changed == 'true'
+        if: steps.check_diff.outputs.changed == 'true'
         run: |
-          # Get the latest commit hash of the *main* repository that includes the submodule update
           commit_hash=$(git rev-parse HEAD)
           commit_url="https://github.com/${GITHUB_REPOSITORY}/commit/${commit_hash}"
 
-          # IMPORTANT: Update these links to point to the submodule content
-          # These links will be correct because they refer to the main repo's commit
-          # which *points* to the updated submodule commit.
-          dump_data_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/moexcom_data/jp_data/dump.cs"
-          fbs_data_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/moexcom_data/jp_data/BlueArchive.fbs"
-          config_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/moexcom_data/jp_data/config.json"
+          dump_data_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/jp_data/dump.cs"
+          fbs_data_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/jp_data/BlueArchive.fbs"
+          config_link="https://github.com/${GITHUB_REPOSITORY}/raw/${commit_hash}/jp_data/config.json"
 
-          # Retrieve data from the config.json located inside the submodule
-          # Path here is relative to the main repo's root.
-          raw_game_url=$(jq -r '.ServerInfoDataUrl' moexcom_data/jp_data/config.json)
+          raw_game_url=$(jq -r '.ServerInfoDataUrl' jp_data/config.json)
           game_url=$(echo "$raw_game_url" | sed -n 's#.*/\([^/]*\)\.json#\1#p')
 
-          catalog_version=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].Name' moexcom_data/jp_data/config.json)
-          raw_catalog=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' moexcom_data/jp_data/config.json)
+          catalog_version=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].Name' jp_data/config.json)
+          raw_catalog=$(jq -r '.ConnectionGroups[0].OverrideConnectionGroups | .[-1].AddressablesCatalogUrlRoot' jp_data/config.json)
           catalog_id=$(echo "$raw_catalog" | sed -n 's#.*/\([^/]*\)$#\1#p')
 
           embed_description=$(cat <<EOF

@@ -43,7 +43,7 @@ jobs:
 
       - name: Set executable permissions for dumper
         run: |
-          chmod +x ./dump_lib/Il2CppDumper/Il2CppDumper
+          chmod +x ./dump_lib/Il2CppInspector/Il2CppInspector
           chmod +x ./dump_lib/FbsDumper/FbsDumper
 
       - name: Run Dumper

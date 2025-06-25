@@ -66,8 +66,19 @@ class FileExtractor:
             print(apk_name, dest_dir)
             self.extract_apk(apk_name, dest_dir)
     
-    def extract_il2cpp(self):
-        destination_dir = os.path.join(self.extract_dir, 'Il2CppDumper')
+    def extract_il2cppData(self):
+        destination_dir = os.path.join(self.extract_dir, 'Il2CppInspector')
+        os.makedirs(destination_dir, exist_ok=True)
+        
+        try:
+            with zipfile.ZipFile(self.file_path, 'r') as zip_ref:
+                zip_ref.extractall(destination_dir)
+            print(f"Extracted {self.file_path} to {destination_dir}")
+        except Exception as e:
+            print(f"Error extracting {self.file_path}: {e}")
+
+    def extract_il2cppPlugin(self):
+        destination_dir = os.path.join(self.extract_dir, 'Il2CppInspector')
         os.makedirs(destination_dir, exist_ok=True)
         
         try:

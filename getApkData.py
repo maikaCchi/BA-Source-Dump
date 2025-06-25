@@ -18,22 +18,29 @@ if __name__ == "__main__":
     region = args.region
 
     lib_dir = os.path.join(os.getcwd(), f'dump_lib')
-    download_dir = os.path.join(os.getcwd(), f'{region}_download')
+    download_dir = os.path.join(os.getcwd(), f'apk_downloads')
     extract_dir = os.path.join(os.getcwd(), f'{region}_extracted')
     os_system = platform.system()
 
     if region == "global":
         pkg = "com.nexon.bluearchive"
+    elif region == "chinese":
+        pkg = "com.RoamingStar.bluearchive"
     else:
         pkg = "com.YostarJP.BlueArchive"
 
     # Download the required dumper
-    il2cppDumperUrl = "https://github.com/AndnixSH/Il2CppDumper/releases/download/v6.7.46/Il2CppDumper-net8-linux-x64-v6.7.46.zip"
+    il2cppInspectorProUrl = "https://github.com/ArkanDash/Il2CppInspectorRedux/releases/download/v1.0/Il2CppInspectorRedux.CLI-linux-x64.zip"
     if os_system == "Windows":
-        il2cppDumperUrl = "https://github.com/Perfare/Il2CppDumper/releases/download/v6.7.46/Il2CppDumper-net6-v6.7.46.zip"
-    il2cppDownloader = FileDownloader(il2cppDumperUrl, lib_dir, "il2cppDumper.zip")
+        il2cppInspectorProUrl = "https://github.com/ArkanDash/Il2CppInspectorRedux/releases/download/v1.0/Il2CppInspectorRedux.CLI-win-x64.zip"
+    il2cppDownloader = FileDownloader(il2cppInspectorProUrl, lib_dir, "il2cppinspector.zip")
     il2cppDownloader.download()
-    FileExtractor(il2cppDownloader.local_filepath, lib_dir, "").extract_il2cpp()
+    FileExtractor(il2cppDownloader.local_filepath, lib_dir, "").extract_il2cppData()
+
+    il2cppInspectorPluginUrl = "https://github.com/djkaty/Il2CppInspectorPlugins/releases/latest/download/plugins.zip"
+    il2cppPluginDownloader = FileDownloader(il2cppInspectorPluginUrl, lib_dir, "il2cppinspectorplugin.zip")
+    il2cppPluginDownloader.download()
+    FileExtractor(il2cppPluginDownloader.local_filepath, lib_dir, "").extract_il2cppPlugin()
 
     fbsDumperUrl = "https://github.com/ArkanDash/FbsDumperV2/releases/download/1.0.0/FbsDumper-net8-linux-x64.zip"
     if os_system == "Windows":
@@ -46,7 +53,7 @@ if __name__ == "__main__":
     # Download and Extract the Game XAPK
     print(f"Downloading {region} APK...")
     xapk_url = f"https://d.apkpure.com/b/XAPK/{pkg}?version=latest"
-    downloader = FileDownloader(xapk_url, download_dir, "BlueArchive.xapk")
+    downloader = FileDownloader(xapk_url, download_dir, f"{pkg}.xapk")
     downloader.download()
     FileExtractor(downloader.local_filepath, extract_dir, region).extract_xapk()
 

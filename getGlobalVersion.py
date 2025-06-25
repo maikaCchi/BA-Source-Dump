@@ -3,7 +3,7 @@ import json
 import requests
 
 from lib.GlobalCatalogFetcher import catalog_url
-from lib.Il2cppDumper import Il2CppDumperCLI
+from lib.Il2CppInspectorDumper import Il2CppInspectorDumperCLI
 from lib.FBSDumper import FbsDumperCLI
 
 if __name__ == "__main__":
@@ -15,15 +15,15 @@ if __name__ == "__main__":
     libil2cpp_path = os.path.join(extract_dir, "config_arm64_v8a", "lib", "arm64-v8a", "libil2cpp.so")
     metadata_path = os.path.join(extract_dir, "BlueArchive_apk", "assets", "bin", "Data", "Managed", "Metadata", "global-metadata.dat")
     dummydll_dir = os.path.join(data_dir, "DummyDll")
-    il2cpp_exec_path = os.path.join(lib_dir, "Il2CppDumper", "Il2CppDumper")
+    il2cpp_exec_path = os.path.join(lib_dir, "Il2CppInspector", "Il2CppInspector")
     fbsdumper_exec_path = os.path.join(lib_dir, "FbsDumper", "FbsDumper")
     if os_system == "Windows":
-        il2cpp_exec_path = os.path.join(lib_dir, "Il2CppDumper", "Il2CppDumper.exe")
+        il2cpp_exec_path = os.path.join(lib_dir, "Il2CppInspector", "Il2CppInspector.exe")
         fbsdumper_exec_path = os.path.join(lib_dir, "FbsDumper", "FbsDumper.exe")
     os.makedirs(data_dir, exist_ok=True)
 
     # Dump il2cpp data from the apk file & Generate fbs data
-    Il2CppDumperCLI(il2cpp_exec_path).dump(libil2cpp_path, metadata_path, data_dir)
+    Il2CppInspectorDumperCLI(il2cpp_exec_path).dump(libil2cpp_path, metadata_path, data_dir)
     FbsDumperCLI(fbsdumper_exec_path).dump(dummydll_dir, libil2cpp_path, data_dir)
 
     # Old fbs generator
